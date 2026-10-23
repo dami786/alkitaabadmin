@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-cream text-ink antialiased;
+}
+
+::selection {
+  background: #e4b15c;
+  color: #4a1520;
+}
+
+.urdu {
+  font-family: "Noto Nastaliq Urdu", serif;
+  line-height: 2.2;
+}
+
+.gold-line {
+  width: 84px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #e4b15c, transparent);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-pine px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-pineDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:bg-pine/40;
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-pine/25 bg-white px-6 py-3 text-sm font-semibold text-pine transition hover:border-pine hover:bg-pine/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-gold {
+  @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-gold px-6 py-3 text-sm font-bold text-pineDark transition hover:bg-[#f0c97a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-white px-6 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.field {
+  @apply w-full rounded-xl border border-[#eadfd8] bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-[#9a8884] focus:border-pine focus:ring-4 focus:ring-pine/10;
+}
+
+.label {
+  @apply mb-1.5 block text-sm font-semibold text-ink;
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border border-[#eadfd8] bg-white shadow-card;
+  }
+}
+
+.pattern {
+  background-color: #fbf6f1;
+  background-image: radial-gradient(rgba(124, 45, 58, 0.12) 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+}
+
+@media print {
+  body,
+  .pattern {
+    background: white !important;
+    background-image: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-card {
+    box-shadow: none !important;
+    border-color: #e4b15c !important;
+  }
+}
