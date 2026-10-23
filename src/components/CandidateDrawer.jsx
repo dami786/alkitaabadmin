@@ -59,6 +59,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
     try {
       const result = await work();
       setMessage(typeof success === "function" ? success(result) : success);
+      setBusy("");
       await onChanged();
     } catch (err) {
       if (err.unauthorized) {
@@ -303,8 +304,10 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
                 className="mt-4 grid gap-3"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  if (!centerPending && examVenue.trim().length < 8) {
-                    setError("Enter the confirmed center address, or leave the center as not confirmed.");
+                  const venue = examVenue.trim();
+                  const confirmed = !centerPending || venue.length >= 8;
+                  if (confirmed && venue.length < 8) {
+                    setError("Enter the full center address (at least 8 characters), or tick “Center not confirmed yet”.");
                     setMessage("");
                     return;
                   }
@@ -313,15 +316,18 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
                     {
                       examDate,
                       examTime,
-                      centerConfirmed: !centerPending,
-                      examVenue: centerPending ? "" : examVenue.trim(),
+                      centerConfirmed: confirmed,
+                      examVenue: confirmed ? venue : "",
                     },
                     (updated) => {
+                      setExamDate(updated.examDate || "");
+                      setExamTime(updated.examTime || "");
                       setCenterPending(updated.centerConfirmed !== true);
                       setExamVenue(updated.examVenue || "");
+                      const when = `${updated.examDate || "To be announced"} at ${updated.examTime || "To be announced"}`;
                       return updated.centerConfirmed
-                        ? "Slip saved. The confirmed center address will print on the admit card."
-                        : "Slip saved. The center is not confirmed yet, so the slip keeps the city only.";
+                        ? `Slip saved. ${when}. Center: ${updated.examVenue}.`
+                        : `Slip saved. ${when}. Tick off “Center not confirmed yet” and enter the address to print the center.`;
                     }
                   );
                 }}
@@ -346,22 +352,25 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
                   />
                   Center not confirmed yet
                 </label>
+                <label className="block">
+                  <span className="label">Center address</span>
+                  <textarea
+                    className="field min-h-24"
+                    value={examVenue}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      setExamVenue(next);
+                      if (next.trim().length >= 8) setCenterPending(false);
+                    }}
+                    placeholder="Govt. College Hall, Mall Road, Lahore"
+                  />
+                </label>
                 {centerPending ? (
                   <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-muted">
-                    The test center for this city has not been confirmed yet. Your selected city is printed on this slip. The academy will add the exact address when the center is confirmed.
+                    The slip prints the city until a center address is saved. Type the full address and it will be printed on the admit card.
                   </p>
-                ) : (
-                  <label className="block">
-                    <span className="label">Center address</span>
-                    <textarea
-                      className="field min-h-24"
-                      value={examVenue}
-                      onChange={(event) => setExamVenue(event.target.value)}
-                      placeholder="Govt. College Hall, Mall Road, Lahore"
-                      required
-                    />
-                  </label>
-                )}
+                ) : null}
+                {error && <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{error}</p>}
                 <div className="flex flex-wrap gap-2">
                   <button className="btn-primary !px-4 !py-2" type="submit" disabled={locked}>
                     {busy === "roll-slip" ? "Saving…" : "Save slip"}

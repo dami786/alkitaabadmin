@@ -38,8 +38,10 @@ export default function Office({ onLogout }) {
   const load = useCallback(async ({ silent = false } = {}) => {
     const ticket = ++loadTicket.current;
     const key = `${tab}|${appliedQuery}`;
-    if (!silent) setLoading(true);
-    setError("");
+    if (!silent) {
+      setLoading(true);
+      setError("");
+    }
     const params = new URLSearchParams({ status: tab, q: appliedQuery });
     try {
       const [stats, list] = await Promise.all([
@@ -51,14 +53,17 @@ export default function Office({ onLogout }) {
       setCounts(list.counts || emptyCounts);
       setRows(list.registrations || []);
       setLoadedKey(key);
+      setError("");
     } catch (err) {
       if (loadTicket.current !== ticket) return;
       if (err.unauthorized) {
         onLogout("Your session ended. Please sign in again.");
         return;
       }
-      setError(err.message);
-      setLoadedKey(key);
+      if (!silent) {
+        setError(err.message);
+        setLoadedKey(key);
+      }
     } finally {
       if (loadTicket.current === ticket) setLoading(false);
     }
@@ -66,6 +71,18 @@ export default function Office({ onLogout }) {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") load({ silent: true });
+    };
+    const timer = setInterval(refresh, 3000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [load]);
 
   useEffect(() => {
