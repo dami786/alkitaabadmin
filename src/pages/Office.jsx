@@ -4,6 +4,7 @@ import Badge from "../components/Badge";
 import CandidateDrawer from "../components/CandidateDrawer";
 import Logo from "../components/Logo";
 import Cities from "./Cities";
+import Messages from "./Messages";
 import RollSlip from "./RollSlip";
 import { formatDob, identityNumber, identityType, paymentLabel, text } from "../format";
 
@@ -174,6 +175,19 @@ export default function Office({ onLogout }) {
             </button>
             <button
               type="button"
+              className={`rounded-full px-3 py-2 text-xs font-bold sm:text-sm ${screen === "messages" ? "bg-white/15 text-gold" : "text-white/80 hover:text-gold"}`}
+              onClick={() => {
+                closeCandidate();
+                setScreen("messages");
+              }}
+            >
+              Messages
+              {overview?.messages > 0 && (
+                <span className="ml-2 rounded-full bg-gold px-2 py-0.5 text-xs text-pine">{overview.messages}</span>
+              )}
+            </button>
+            <button
+              type="button"
               className={`rounded-full px-3 py-2 text-xs font-bold sm:text-sm ${screen === "cities" ? "bg-white/15 text-gold" : "text-white/80 hover:text-gold"}`}
               onClick={() => {
                 closeCandidate();
@@ -202,6 +216,8 @@ export default function Office({ onLogout }) {
         />
       ) : screen === "cities" ? (
         <Cities onUnauthorized={() => onLogout("Your session ended. Please sign in again.")} />
+      ) : screen === "messages" ? (
+        <Messages onUnauthorized={() => onLogout("Your session ended. Please sign in again.")} />
       ) : (
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
