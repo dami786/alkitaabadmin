@@ -1,6 +1,13 @@
 const TOKEN_KEY = "alkitab_admin_token";
 const USER_KEY = "alkitab_admin_username";
 
+const API_BASE = String(import.meta.env.VITE_API_BASE || "").replace(/\/$/, "");
+
+export function apiUrl(path) {
+  if (!API_BASE || /^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path}`;
+}
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY) || "";
 }
@@ -25,7 +32,7 @@ export function authHeader() {
 }
 
 export async function request(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(apiUrl(url), options);
   const type = response.headers.get("content-type") || "";
   const data = type.includes("application/json") ? await response.json() : null;
   if (!response.ok) {
@@ -50,7 +57,7 @@ export async function adminRequest(url, options = {}) {
 }
 
 export async function downloadExport() {
-  const response = await fetch("/api/admin/export", { headers: authHeader() });
+  const response = await fetch(apiUrl("/api/admin/export"), { headers: authHeader() });
   if (!response.ok) {
     const type = response.headers.get("content-type") || "";
     const data = type.includes("application/json") ? await response.json() : null;
