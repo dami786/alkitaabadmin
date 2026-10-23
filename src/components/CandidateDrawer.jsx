@@ -60,7 +60,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
       const result = await work();
       setMessage(typeof success === "function" ? success(result) : success);
       setBusy("");
-      await onChanged();
+      onChanged(result);
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized();
@@ -234,7 +234,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
                   setMessage("");
                   try {
                     await adminRequest(`/api/admin/registrations/${candidate.id}`, { method: "DELETE" });
-                    await onDeleted();
+                    onDeleted();
                   } catch (err) {
                     if (err.unauthorized) {
                       onUnauthorized();

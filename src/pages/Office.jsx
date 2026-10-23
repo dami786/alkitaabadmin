@@ -116,24 +116,79 @@ export default function Office({ onLogout }) {
     setDetailLoaded(false);
   }
 
-  async function removeSelected() {
-    closeCandidate();
-    await load({ silent: true });
+  function countKey(status) {
+    if (status === "approved" || status === "accepted") return "accepted";
+    if (status === "rejected") return "rejected";
+    if (status === "pending") return "pending";
+    return "";
   }
 
-  async function refreshSelected() {
-    const id = selected?.id;
-    const ticket = openTicket.current;
-    await load({ silent: true });
-    if (!id || openTicket.current !== ticket) return;
-    try {
-      const full = await adminRequest(`/api/admin/registrations/${id}`);
-      if (openTicket.current !== ticket) return;
-      setSelected((current) => (current?.id === id ? full : current));
-      setDetailLoaded(true);
-    } catch (err) {
-      if (err.unauthorized) onLogout("Your session ended. Please sign in again.");
+  function overviewKey(status) {
+    if (status === "approved" || status === "accepted") return "approved";
+    if (status === "rejected" || status === "pending") return status;
+    return "";
+  }
+
+  function shiftCounts(current, from, to) {
+    const next = { ...current };
+    const source = countKey(from);
+    const target = countKey(to);
+    if (source && source !== target) next[source] = Math.max(0, (next[source] || 0) - 1);
+    if (target && source !== target) next[target] = (next[target] || 0) + 1;
+    return next;
+  }
+
+  function shiftOverview(current, from, to) {
+    if (!current) return current;
+    const next = { ...current };
+    const source = overviewKey(from);
+    const target = overviewKey(to);
+    if (source && source !== target && typeof next[source] === "number") next[source] = Math.max(0, next[source] - 1);
+    if (target && source !== target && typeof next[target] === "number") next[target] += 1;
+    return next;
+  }
+
+  function removeSelected() {
+    const current = selected;
+    closeCandidate();
+    if (current) {
+      setRows((rows) => rows.filter((row) => row.id !== current.id));
+      setCounts((counts) => {
+        const next = { ...counts, all: Math.max(0, (counts.all || 0) - 1) };
+        const key = countKey(current.status);
+        if (key) next[key] = Math.max(0, (next[key] || 0) - 1);
+        return next;
+      });
+      setOverview((stats) => {
+        if (!stats) return stats;
+        const next = { ...stats, total: Math.max(0, (stats.total || 0) - 1) };
+        const key = overviewKey(current.status);
+        if (key && typeof next[key] === "number") next[key] = Math.max(0, next[key] - 1);
+        return next;
+      });
     }
+    load({ silent: true });
+  }
+
+  function refreshSelected(patch) {
+    const current = selected;
+    const decisionFields = ["status", "rollNumber", "adminNote", "examDate", "examTime", "centerConfirmed", "examVenue"];
+    if (current && patch && typeof patch === "object" && decisionFields.some((key) => key in patch)) {
+      const next = { ...current, ...patch, id: current.id };
+      setSelected(next);
+      const visible = !patch.status || countKey(patch.status) === tab || (tab === "accepted" && patch.status === "approved");
+      setRows((rows) =>
+        rows.flatMap((row) => {
+          if (row.id !== current.id) return [row];
+          return visible ? [{ ...row, ...patch, id: row.id }] : [];
+        })
+      );
+      if (patch.status) {
+        setCounts((counts) => shiftCounts(counts, current.status, patch.status));
+        setOverview((stats) => shiftOverview(stats, current.status, patch.status));
+      }
+    }
+    load({ silent: true });
   }
 
   async function exportExcel() {
