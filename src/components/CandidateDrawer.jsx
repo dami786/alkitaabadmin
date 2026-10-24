@@ -16,6 +16,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [emailNotice, setEmailNotice] = useState(null);
   const [showReject, setShowReject] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [note, setNote] = useState(candidate.adminNote || "");
@@ -59,6 +60,12 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
     try {
       const result = await work();
       setMessage(typeof success === "function" ? success(result) : success);
+      if (name === "approve" || name === "reject") {
+        setEmailNotice({
+          sent: result?.emailSent === true,
+          error: result?.emailError || "",
+        });
+      }
       setBusy("");
       onChanged(result);
     } catch (err) {
@@ -129,6 +136,15 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
           {message && (
             <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
               {message}
+            </p>
+          )}
+          {emailNotice && (
+            <p
+              className={`rounded-2xl px-4 py-3 text-sm font-medium ${emailNotice.sent ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}
+              role="status"
+            >
+              {emailNotice.sent ? "Email sent to the candidate." : "Saved, but the email was not sent."}
+              {!emailNotice.sent && emailNotice.error ? <span className="mt-1 block font-normal">{emailNotice.error}</span> : null}
             </p>
           )}
 
