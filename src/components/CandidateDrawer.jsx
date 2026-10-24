@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { adminRequest } from "../api";
 import Badge from "./Badge";
 import {
@@ -17,6 +17,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [emailNotice, setEmailNotice] = useState(null);
+  const decisionSnapshot = useRef(null);
   const [showReject, setShowReject] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [note, setNote] = useState(candidate.adminNote || "");
@@ -56,19 +57,28 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
   async function run(name, work, success) {
     setBusy(name);
     setError("");
-    setMessage("");
+    if (name !== "approve" && name !== "reject") setMessage("");
     try {
       const result = await work();
       setMessage(typeof success === "function" ? success(result) : success);
       if (name === "approve" || name === "reject") {
+        decisionSnapshot.current = null;
         setEmailNotice({
+          pending: false,
           sent: result?.emailSent === true,
           error: result?.emailError || "",
         });
+        onChanged(result);
+      } else {
+        onChanged(result);
       }
       setBusy("");
-      onChanged(result);
     } catch (err) {
+      if ((name === "approve" || name === "reject") && decisionSnapshot.current) {
+        onChanged(decisionSnapshot.current);
+        decisionSnapshot.current = null;
+        setEmailNotice(null);
+      }
       if (err.unauthorized) {
         onUnauthorized();
         return;
@@ -80,6 +90,22 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
   }
 
   function act(action, extra = {}, success) {
+    if (action === "approve" || action === "reject") {
+      decisionSnapshot.current = {
+        status: candidate.status,
+        adminNote: candidate.adminNote || "",
+        rollNumber: candidate.rollNumber || "",
+      };
+      onChanged({
+        status: action === "approve" ? "approved" : "rejected",
+        adminNote: action === "reject" ? extra.note || "" : candidate.adminNote || "",
+        rollNumber: candidate.rollNumber || "",
+      });
+      setShowReject(false);
+      setShowDelete(false);
+      setEmailNotice({ pending: true, sent: false, error: "" });
+      setMessage(action === "approve" ? "Accepted." : "Rejected.");
+    }
     return run(
       action,
       () =>
@@ -140,11 +166,17 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
           )}
           {emailNotice && (
             <p
-              className={`rounded-2xl px-4 py-3 text-sm font-medium ${emailNotice.sent ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}
+              className={`rounded-2xl px-4 py-3 text-sm font-medium ${emailNotice.pending ? "bg-cream text-ink" : emailNotice.sent ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}
               role="status"
             >
-              {emailNotice.sent ? "Email sent to the candidate." : "Saved, but the email was not sent."}
-              {!emailNotice.sent && emailNotice.error ? <span className="mt-1 block font-normal">{emailNotice.error}</span> : null}
+              {emailNotice.pending
+                ? "Sending the email to the candidate…"
+                : emailNotice.sent
+                  ? "Email sent to the candidate."
+                  : "Saved, but the email was not sent."}
+              {!emailNotice.pending && !emailNotice.sent && emailNotice.error ? (
+                <span className="mt-1 block font-normal">{emailNotice.error}</span>
+              ) : null}
             </p>
           )}
 
@@ -174,6 +206,16 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
             <div className="flex flex-wrap items-center gap-2">
               <Badge value={candidate.status} />
             </div>
+            {emailNotice && (
+              <p className={`mt-3 rounded-2xl px-4 py-3 text-sm font-medium ${emailNotice.pending ? "bg-cream text-ink" : emailNotice.sent ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>
+                {emailNotice.pending
+                  ? "Sending the email to the candidate…"
+                  : emailNotice.sent
+                    ? "Email sent to the candidate."
+                    : "Saved, but the email was not sent."}
+                {!emailNotice.pending && !emailNotice.sent && emailNotice.error ? <span className="mt-1 block font-normal">{emailNotice.error}</span> : null}
+              </p>
+            )}
             <p className="mt-3 text-sm text-muted">
               Accept issues the roll number. A rejected registration can be accepted again, and an accepted one can still be rejected. The same roll number is kept.
             </p>

@@ -33,6 +33,7 @@ export default function Office({ onLogout }) {
   const [screen, setScreen] = useState("registrations");
   const [slipId, setSlipId] = useState("");
   const openTicket = useRef(0);
+  const selectedStatus = useRef("");
 
   const requestKey = `${tab}|${appliedQuery}`;
 
@@ -93,6 +94,7 @@ export default function Office({ onLogout }) {
 
   async function openCandidate(row) {
     const ticket = ++openTicket.current;
+    selectedStatus.current = row.status || "";
     setSelected(row);
     setDetailLoaded(false);
     try {
@@ -171,22 +173,25 @@ export default function Office({ onLogout }) {
   }
 
   function refreshSelected(patch) {
-    const current = selected;
     const decisionFields = ["status", "rollNumber", "adminNote", "examDate", "examTime", "centerConfirmed", "examVenue"];
-    if (current && patch && typeof patch === "object" && decisionFields.some((key) => key in patch)) {
-      const next = { ...current, ...patch, id: current.id };
-      setSelected(next);
-      const visible = !patch.status || countKey(patch.status) === tab || (tab === "accepted" && patch.status === "approved");
+    if (patch && typeof patch === "object" && decisionFields.some((key) => key in patch)) {
+      const from = selectedStatus.current;
+      if (patch.status && patch.status !== from) {
+        selectedStatus.current = patch.status;
+        setCounts((counts) => shiftCounts(counts, from, patch.status));
+        setOverview((stats) => shiftOverview(stats, from, patch.status));
+      }
+      setSelected((current) => {
+        if (!current) return current;
+        return { ...current, ...patch, id: current.id };
+      });
+      const visible = !patch.status || countKey(patch.status) === tab;
       setRows((rows) =>
         rows.flatMap((row) => {
-          if (row.id !== current.id) return [row];
+          if (!selected || row.id !== selected.id) return [row];
           return visible ? [{ ...row, ...patch, id: row.id }] : [];
         })
       );
-      if (patch.status) {
-        setCounts((counts) => shiftCounts(counts, current.status, patch.status));
-        setOverview((stats) => shiftOverview(stats, current.status, patch.status));
-      }
     }
     load({ silent: true });
   }
