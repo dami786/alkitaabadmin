@@ -16,7 +16,6 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [emailNotice, setEmailNotice] = useState(null);
   const decisionSnapshot = useRef(null);
   const [showReject, setShowReject] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -61,23 +60,13 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
     try {
       const result = await work();
       setMessage(typeof success === "function" ? success(result) : success);
-      if (name === "approve" || name === "reject") {
-        decisionSnapshot.current = null;
-        setEmailNotice({
-          pending: false,
-          sent: result?.emailSent === true,
-          error: result?.emailError || "",
-        });
-        onChanged(result);
-      } else {
-        onChanged(result);
-      }
+      if (name === "approve" || name === "reject") decisionSnapshot.current = null;
+      onChanged(result);
       setBusy("");
     } catch (err) {
       if ((name === "approve" || name === "reject") && decisionSnapshot.current) {
         onChanged(decisionSnapshot.current);
         decisionSnapshot.current = null;
-        setEmailNotice(null);
       }
       if (err.unauthorized) {
         onUnauthorized();
@@ -103,7 +92,6 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
       });
       setShowReject(false);
       setShowDelete(false);
-      setEmailNotice({ pending: true, sent: false, error: "" });
       setMessage(action === "approve" ? "Accepted." : "Rejected.");
     }
     return run(
@@ -164,21 +152,6 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
               {message}
             </p>
           )}
-          {emailNotice && (
-            <p
-              className={`rounded-2xl px-4 py-3 text-sm font-medium ${emailNotice.pending ? "bg-cream text-ink" : emailNotice.sent ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}
-              role="status"
-            >
-              {emailNotice.pending
-                ? "Sending the email to the candidate…"
-                : emailNotice.sent
-                  ? "Email sent to the candidate."
-                  : "Saved, but the email was not sent."}
-              {!emailNotice.pending && !emailNotice.sent && emailNotice.error ? (
-                <span className="mt-1 block font-normal">{emailNotice.error}</span>
-              ) : null}
-            </p>
-          )}
 
           <section className="grid gap-4 sm:grid-cols-2">
             <figure className="rounded-2xl border border-[#eadfd8] bg-white p-3">
@@ -206,16 +179,6 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
             <div className="flex flex-wrap items-center gap-2">
               <Badge value={candidate.status} />
             </div>
-            {emailNotice && (
-              <p className={`mt-3 rounded-2xl px-4 py-3 text-sm font-medium ${emailNotice.pending ? "bg-cream text-ink" : emailNotice.sent ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>
-                {emailNotice.pending
-                  ? "Sending the email to the candidate…"
-                  : emailNotice.sent
-                    ? "Email sent to the candidate."
-                    : "Saved, but the email was not sent."}
-                {!emailNotice.pending && !emailNotice.sent && emailNotice.error ? <span className="mt-1 block font-normal">{emailNotice.error}</span> : null}
-              </p>
-            )}
             <p className="mt-3 text-sm text-muted">
               Accept issues the roll number. A rejected registration can be accepted again, and an accepted one can still be rejected. The same roll number is kept.
             </p>
@@ -226,9 +189,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
                   type="button"
                   disabled={locked}
                   onClick={() =>
-                    act("approve", {}, (updated) =>
-                      updated.rollNumber ? `Accepted. Roll number ${updated.rollNumber}.` : "Registration accepted."
-                    )
+                    act("approve", {}, "Accepted.")
                   }
                 >
                   Accept
@@ -264,7 +225,7 @@ export default function CandidateDrawer({ candidate, imagesReady, onClose, onCha
                 className="mt-4 space-y-3"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  act("reject", { note: note.trim() }, "Registration rejected. The note is shown on the candidate status page.");
+                  act("reject", { note: note.trim() }, "Rejected.");
                 }}
               >
                 <label className="block">
